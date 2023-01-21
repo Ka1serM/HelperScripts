@@ -30,7 +30,6 @@ def _unreal_import_fbx_asset(input_path, destination_path, destination_name):
 def _generate_fbx_import_task(
     filename,
     destination_path,
-    destination_name=None,
     replace_existing=True,
     as_skeletal=True
     ):
@@ -44,8 +43,6 @@ def _generate_fbx_import_task(
     task.filename = filename
     task.destination_path = destination_path
     # By default, destination_name is the filename without the extension
-    if destination_name is not None:
-        task.destination_name = destination_name
     task.replace_existing = True
     task.automated = False
     task.save = True
@@ -63,14 +60,17 @@ def _generate_fbx_import_task(
     return task
 
 def main():
-    root_directory = "C:/ValorantMapExport/test/"
+
+    root_directory = "C:/ValorantMapExport/test/" # put your paths here
+    unreal_path = "/Game/ShooterGame/"
+
     for dirpath, dirnames, filenames in os.walk(root_directory):
         for filename in filenames:
             # Check if the file is an .psk file              
             if filename.endswith(".fbx"):
                 # Construct the full file path
                 import_path = os.path.join(dirpath, filename)
-                content_path = dirpath.replace("C:/ValorantMapExport/test/", "/Game/ShooterGame/")
+                content_path = dirpath.replace(root_directory, unreal_path)
                 print(content_path)
                 _unreal_import_fbx_asset(import_path, content_path, None)
 
