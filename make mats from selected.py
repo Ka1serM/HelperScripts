@@ -10,12 +10,23 @@ def set_mi_texture(mi_asset, param_name, tex_path):
 
 def main():
     unreal.log("-------------------CREATING MATERIAL INSTANCE--------------------------------")
+
+    base_material_path = "/Game/Valorant/Characters/_Core/MasterMaterials/3P_Character_Mat_V5"
+
+    Diffuse_suffix = '_DF'
+    Packed_suffix = '_MRAE'
+    Normal_suffix = '_DF'
+
+    Diffuse_param = 'Diffuse'
+    Packed_param = 'MRAE'
+    Normal_param = 'Normal'
+
+
     AssetTools = unreal.AssetToolsHelpers.get_asset_tools()
     asset_registry = unreal.AssetRegistryHelpers.get_asset_registry()
     MaterialEditingLibrary = unreal.MaterialEditingLibrary
     EditorAssetLibrary = unreal.EditorAssetLibrary
-
-    base_mtl = unreal.EditorAssetLibrary.find_asset_data("/Game/Valorant/Characters/_Core/MasterMaterials/3P_Character_Mat_V5")
+    base_mtl = unreal.EditorAssetLibrary.find_asset_data(base_material_path)
     sel_assets = unreal.EditorUtilityLibrary.get_selected_assets()
     for texture in sel_assets:
         base_path = unreal.Paths.get_path(texture.get_path_name())
@@ -28,12 +39,16 @@ def main():
             unreal.log("Asset already exists")
         else:
             mi_asset = AssetTools.create_asset(mi_name, base_path, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+        
         MaterialEditingLibrary.set_material_instance_parent( mi_asset, base_mtl.get_asset() )  # set parent material
-        mrae_path = texture.get_path_name().replace('_DF', '_MRAE')
-        normal_path = texture.get_path_name().replace('_DF', '_NM')
-        set_mi_texture(mi_asset, 'Diffuse', texture.get_path_name())
-        set_mi_texture(mi_asset, 'MRAE', mrae_path)       
-        set_mi_texture(mi_asset, 'Normal', normal_path)
+        mrae_path = texture.get_path_name().replace(Diffuse_suffix, Packed_suffix)
+        normal_path = texture.get_path_name().replace(Diffuse_suffix, Normal_suffix)
+
+        #Set the textures in Material parameters
+        set_mi_texture(mi_asset, Diffuse_param, texture.get_path_name())
+        set_mi_texture(mi_asset, Packed_param, mrae_path)       
+        set_mi_texture(mi_asset, Normal_param, normal_path)
+        unreal.log("-------------------DONE--------------------------------")
 
 if __name__ == "__main__":
     main()  
