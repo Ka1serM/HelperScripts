@@ -107,7 +107,7 @@ class IMPORTEXPORT(bpy.types.Operator):
             bActionsToTrack = False,
             first_frames = 0,
             bDontInvertRoot = True,
-            bUpdateTimelineRange = False,
+            bUpdateTimelineRange = True,
             bRotationOnly = False,
             bScaleDown = False,
             fcurve_interpolation = 'LINEAR',
