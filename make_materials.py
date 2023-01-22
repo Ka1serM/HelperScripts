@@ -13,8 +13,10 @@ def main():
     MaterialEditingLibrary = unreal.MaterialEditingLibrary
     EditorAssetLibrary = unreal.EditorAssetLibrary
 
-    base_mtl = unreal.EditorAssetLibrary.find_asset_data("/Game/Valorant/Characters/_Core/MasterMaterials/3P_Character_Mat_V5")
-        
+
+    base_material_path = "/Game/Valorant/Characters/_Core/MasterMaterials/3P_Character_Mat_V5"
+
+    base_mtl = unreal.EditorAssetLibrary.find_asset_data(base_material_path)
     #Iterate over selected meshes
     sel_assets = unreal.EditorUtilityLibrary.get_selected_assets()
     mesh_list = []
