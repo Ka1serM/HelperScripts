@@ -15,7 +15,8 @@ def main():
 
     Diffuse_suffix = '_DF'
     Packed_suffix = '_MRAE'
-    Normal_suffix = '_DF'
+    Normal_suffix = '_NM'
+    Instance_suffix = '_MI'
 
     Diffuse_param = 'Diffuse'
     Packed_param = 'MRAE'
@@ -31,7 +32,7 @@ def main():
     for texture in sel_assets:
         base_path = unreal.Paths.get_path(texture.get_path_name())
         tex_name = texture.get_name()
-        mi_name = tex_name.replace('_DF', '_MI')
+        mi_name = tex_name.replace(Diffuse_suffix, Instance_suffix)
         mi_full_path = base_path + mi_name
         #Check if material instance already exists
         if EditorAssetLibrary.does_asset_exist(mi_full_path):
