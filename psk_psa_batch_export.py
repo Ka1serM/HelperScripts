@@ -222,6 +222,8 @@ class PSAFBX_Run(bpy.types.Operator):
                         print(psa_path)
                         props_path = (psa_path[:-3] + 'props.txt')
                         fbx_path = (psa_path[:-3] + 'fbx')
+                        if os.path.exists(fbx_path):
+                            continue
                         print(fbx_path)
                         with open(props_path, 'r') as file:
                             found = False
