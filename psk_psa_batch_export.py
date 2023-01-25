@@ -224,6 +224,7 @@ class PSAFBX_Run(bpy.types.Operator):
                         fbx_path = (psa_path[:-3] + 'fbx')
                         print(fbx_path)
                         with open(props_path, 'r') as file:
+                            skeleton_name = None
                             for line in file:
                                 if ('Skeleton = Skeleton' in line):
                                     skeleton_asset_path = line.rsplit("'")
@@ -259,6 +260,8 @@ class PSAFBX_Run(bpy.types.Operator):
                                                 #bpy.data.batch_remove(context.scene.objects)
                                                 #bpy.data.batch_remove([o for o in purge_data if not o.users])
                                                 print('exported ' + fbx_path + ' successfully')
+                                                if skeleton_name is not None:
+                                                    break
 
         if args.skeleton_enum == 'PSK':
             psk_path = args.psk_file
