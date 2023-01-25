@@ -83,7 +83,7 @@ class IMPORTEXPORT(bpy.types.Operator):
     bl_label = "import export"
     bl_options = {'REGISTER', 'UNDO'}
        
-    def importpsk(path, bmesh):   
+    def importpsk(path, bmesh):
         pskimport(
         filepath = path,
         context = None,
@@ -220,12 +220,13 @@ class PSAFBX_Run(bpy.types.Operator):
                         # Construct the full file path
                         psa_path = os.path.join(dirpath, filename)
                         print(psa_path)
-                        props_path = psa_path.replace('.psa','.props.txt')
-                        fbx_path = psa_path.replace('.psa', '.fbx')
+                        props_path = (psa_path[:-3] + 'props.txt')
+                        fbx_path = (psa_path[:-3] + 'fbx')
+                        print(fbx_path)
                         with open(props_path, 'r') as file:
                             for line in file:
-                                if re.search('"Skeleton":', line):
-                                    skeleton_asset_path = line.split("'")
+                                if ('Skeleton = Skeleton' in line):
+                                    skeleton_asset_path = line.rsplit("'")
                                     skeleton_name = skeleton_asset_path[1].split(".")[1]
                                     print(skeleton_name)      
                                     root_directory = bpy.path.abspath(args.skeleton_folder)
@@ -246,22 +247,18 @@ class PSAFBX_Run(bpy.types.Operator):
                                                 IMPORTEXPORT.importpsa(psa_path)       
                                                 # Construct FBX path and export
                                                 IMPORTEXPORT.exportfbx(fbx_path)
-                                                
+    
                                                 #Clear scene
                                                 for action in bpy.data.actions:
                                                     action.user_clear()
                                                     bpy.data.actions.remove(action)
                                                 for armature in bpy.data.armatures:
                                                     armature.user_clear()
-                                                    bpy.data.armatures.remove(armature)
-                                                for mesh in bpy.data.meshes:
-                                                    mesh.user_clear()
-                                                    bpy.data.meshes.remove(mesh)                    
-                                                purge_data = set(o.data for o in context.scene.objects if o.data)
-                                                bpy.data.batch_remove(context.scene.objects)
-                                                bpy.data.batch_remove([o for o in purge_data if not o.users])
-                                                
-                                                #print('exported ' + psa_path + ' successfully')
+                                                    bpy.data.armatures.remove(armature)                
+                                                #purge_data = set(o.data for o in context.scene.objects if o.data)
+                                                #bpy.data.batch_remove(context.scene.objects)
+                                                #bpy.data.batch_remove([o for o in purge_data if not o.users])
+                                                print('exported ' + fbx_path + ' successfully')
 
         if args.skeleton_enum == 'PSK':
             psk_path = args.psk_file
@@ -335,11 +332,11 @@ class PSAFBX_AddonPanel(bpy.types.Panel):
         layout.prop(props, "psa_folder")
         if props.skeleton_enum == 'FOLDER':
             layout.prop(props, "skeleton_folder")
-            layout.prop(props, "skeleton_enum") 
+            layout.prop(props, "skeleton_enum")
         else:
-             layout.prop(props, "psk_file")
-             layout.prop(props, "skeleton_enum") 
-             layout.prop(props, "mesh_bool") 
+            layout.prop(props, "psk_file")
+            layout.prop(props, "skeleton_enum") 
+            layout.prop(props, "mesh_bool") 
         layout.operator("object.psarun", text = "Convert PSA to UE FBX Recursive") 
         
           
