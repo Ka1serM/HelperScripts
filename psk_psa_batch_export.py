@@ -209,6 +209,8 @@ class PSAFBX_Run(bpy.types.Operator):
         context = context
         scene = context.scene
         args = scene.my_properties
+
+        props_pattern = 'Skeleton: Skeleton'
         
         if args.skeleton_enum == 'FOLDER':
             root_directory = bpy.path.abspath(args.psa_folder)
@@ -230,7 +232,7 @@ class PSAFBX_Run(bpy.types.Operator):
                             for line in file:
                                 if found:
                                     break
-                                if ('"Skeleton": "Skeleton' in line):
+                                if (props_pattern in line):
                                     skeleton_asset_path = line.rsplit("'")
                                     skeleton_name = skeleton_asset_path[1].split(".")[1]
                                     print(skeleton_name)      
