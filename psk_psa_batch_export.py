@@ -1,8 +1,8 @@
 bl_info = {
-  "name": "Psk to Fbx for Unreal",
-  "description": "Description :)",
-  "author": "Zain",
-  "version": (0, 0, 2),
+  "name": "ActorX to FBX for Unreal",
+  "description": "Bulk convert ActorX to FBX for UE",
+  "author": "Zain/Buckminsterfullerene",
+  "version": (0, 0, 5),
   "blender": (3, 4, 0),
   "support": "COMMUNITY",
   "category": "Import",
@@ -10,6 +10,7 @@ bl_info = {
 
 import re
 import os
+import json
 import bpy
 from bpy.types import Scene
 from bpy.props import (BoolProperty,
@@ -69,13 +70,17 @@ class PSKFBX_AddonProperties(bpy.types.PropertyGroup):
         ]
     )
     mesh_bool : bpy.props.BoolProperty(name='Include mesh',
-                                 description='if the animation should include the mesh',
-                                 default=False,
-                                 subtype='NONE')
-    
-    
-    
-    
+                                description='If the animation should include the mesh',
+                                default=False,
+                                subtype='NONE')
+    replace_fbx_psk : bpy.props.BoolProperty(name='Replace existing FBX file',
+                                description='If it should replace existing FBX files',
+                                default=True,
+                                subtype='NONE')
+    replace_fbx_psa : bpy.props.BoolProperty(name='Replace existing FBX file',
+                                description='If it should replace existing FBX files',
+                                default=True,
+                                subtype='NONE')
 
 ######################## PSK RUN ######################################
 class IMPORTEXPORT(bpy.types.Operator):
@@ -118,7 +123,7 @@ class IMPORTEXPORT(bpy.types.Operator):
         bpy.ops.export_scene.fbx(
         filepath=path,
         use_selection = False,
-        global_scale = 1.0,
+        global_scale = 1,
         apply_unit_scale = True,
         apply_scale_options = 'FBX_SCALE_NONE',
         use_space_transform = True,
@@ -149,8 +154,6 @@ class IMPORTEXPORT(bpy.types.Operator):
         axis_up = 'Y',
         )        
 
-
-
 class PSKFBX_Run(bpy.types.Operator):
     bl_idname = "object.pskrun"
     bl_label = "Convert PSK to FBX Recursive"
@@ -159,6 +162,7 @@ class PSKFBX_Run(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         args = scene.my_properties
+        #bpy.context.scene.unit_settings.scale_length = 0.01
         
         root_directory = bpy.path.abspath(args.psk_folder_path)
         # Recursively process all files in the root directory and subdirectories
@@ -173,6 +177,9 @@ class PSKFBX_Run(bpy.types.Operator):
                     # Construct the full file path
                     path = os.path.join(dirpath, filename)
                     fbx_path = path.replace(format, '.fbx')
+                    if os.path.exists(fbx_path) and not args.replace_fbx_psk:
+                        print('fbx file already exists' + fbx_path)
+                        continue
                     # Import the .psk file                  
                     IMPORTEXPORT.importpsk(path, True)
                     #Rename Armature to "Armature"
@@ -181,7 +188,7 @@ class PSKFBX_Run(bpy.types.Operator):
                     selected.data.name = "Root"
                     # Export the object to .fbx                   
                     IMPORTEXPORT.exportfbx(fbx_path)
-                     
+                    
                     for material in bpy.data.materials:
                         material.user_clear()
                         bpy.data.materials.remove(material)
@@ -208,9 +215,10 @@ class PSAFBX_Run(bpy.types.Operator):
     def execute(self, context):
         context = context
         scene = context.scene
+        #bpy.context.scene.unit_settings.scale_length = 0.01
         args = scene.my_properties
 
-        props_pattern = 'Skeleton: Skeleton'
+        props_pattern = 'Skeleton = Skeleton'
         
         if args.skeleton_enum == 'FOLDER':
             root_directory = bpy.path.abspath(args.psa_folder)
@@ -221,53 +229,96 @@ class PSAFBX_Run(bpy.types.Operator):
                     if filename.endswith('.psa'):
                         # Construct the full file path
                         psa_path = os.path.join(dirpath, filename)
-                        print(psa_path)
+                        #print(psa_path)
                         props_path = (psa_path[:-3] + 'props.txt')
                         fbx_path = (psa_path[:-3] + 'fbx')
-                        if os.path.exists(fbx_path):
+                        if os.path.exists(fbx_path) and not args.replace_fbx_psa:
+                            print('fbx file already exists' + fbx_path)
                             continue
-                        print(fbx_path)
-                        with open(props_path, 'r') as file:
-                            found = False
-                            for line in file:
-                                if found:
-                                    break
-                                if (props_pattern in line):
-                                    skeleton_asset_path = line.rsplit("'")
-                                    skeleton_name = skeleton_asset_path[1].split(".")[1]
-                                    print(skeleton_name)      
-                                    root_directory = bpy.path.abspath(args.skeleton_folder)
-                                    # Recursively process all files in the root directory and subdirectories
-                                    for dir, names, files in os.walk(root_directory):
-                                        for file in files:
-                                            # Check if the file is an .psk file            
-                                            if file == (skeleton_name + '.psk'):
-                                                # Construct the full file path
-                                                skeleton_path = os.path.join(dir, file)                                 
-                                                #Import Skeleton as PSK  
-                                                IMPORTEXPORT.importpsk(skeleton_path, False)                   
-                                                #Rename Armature to "Armature"
-                                                selected = bpy.context.selected_objects[0]
-                                                selected.name = "Armature"
-                                                selected.data.name = "Root"
-                                                # Construct PSA path and import
-                                                IMPORTEXPORT.importpsa(psa_path)       
-                                                # Construct FBX path and export
-                                                IMPORTEXPORT.exportfbx(fbx_path)
-    
-                                                #Clear scene
-                                                for action in bpy.data.actions:
-                                                    action.user_clear()
-                                                    bpy.data.actions.remove(action)
-                                                for armature in bpy.data.armatures:
-                                                    armature.user_clear()
-                                                    bpy.data.armatures.remove(armature)                
-                                                #purge_data = set(o.data for o in context.scene.objects if o.data)
-                                                #bpy.data.batch_remove(context.scene.objects)
-                                                #bpy.data.batch_remove([o for o in purge_data if not o.users])
-                                                print('exported ' + fbx_path + ' successfully')
-                                                found = True
-                                                break
+                        if not os.path.exists(props_path):
+                            props_path = (psa_path[:-3] + 'json')
+                            if not os.path.exists(props_path):
+                                #print('props file not found')
+                                continue
+                            #print(props_path)
+                            with open(props_path) as file:
+                                skeleton_info = json.load(file)
+                            skeleton_name = skeleton_info["Properties"]["Skeleton"]["ObjectName"][8:].replace("'", "")
+                            #print(skeleton_name)
+                            root_directory = bpy.path.abspath(args.skeleton_folder)
+                            # Recursively process all files in the root directory and subdirectories
+                            for dir, names, files in os.walk(root_directory):
+                                for file in files:
+                                    # Check if the file is an .psk file            
+                                    if file == (skeleton_name + '.psk'):
+                                        # Construct the full file path
+                                        skeleton_path = os.path.join(dir, file)                                 
+                                        #Import Skeleton as PSK  
+                                        IMPORTEXPORT.importpsk(skeleton_path, False)                   
+                                        #Rename Armature to "Armature"
+                                        selected = bpy.context.selected_objects[0]
+                                        selected.name = "Armature"
+                                        selected.data.name = "Root"
+                                        # Construct PSA path and import
+                                        IMPORTEXPORT.importpsa(psa_path)       
+                                        # Construct FBX path and export
+                                        IMPORTEXPORT.exportfbx(fbx_path)
+
+                                        #Clear scene
+                                        for action in bpy.data.actions:
+                                            action.user_clear()
+                                            bpy.data.actions.remove(action)
+                                        for armature in bpy.data.armatures:
+                                            armature.user_clear()
+                                            bpy.data.armatures.remove(armature)                
+                                        #purge_data = set(o.data for o in context.scene.objects if o.data)
+                                        #bpy.data.batch_remove(context.scene.objects)
+                                        #bpy.data.batch_remove([o for o in purge_data if not o.users])
+                                        print('exported ' + fbx_path + ' successfully')
+                                        found = True
+                                        break
+                        else: 
+                            with open(props_path, 'r') as file:
+                                found = False
+                                for line in file:
+                                    if found:
+                                        break
+                                    if (props_pattern in line):
+                                        skeleton_asset_path = line.rsplit("'")
+                                        skeleton_name = skeleton_asset_path[1].split(".")[1]
+                                        print(skeleton_name)      
+                                        root_directory = bpy.path.abspath(args.skeleton_folder)
+                                        # Recursively process all files in the root directory and subdirectories
+                                        for dir, names, files in os.walk(root_directory):
+                                            for file in files:
+                                                # Check if the file is an .psk file            
+                                                if file == (skeleton_name + '.psk'):
+                                                    # Construct the full file path
+                                                    skeleton_path = os.path.join(dir, file)                                 
+                                                    #Import Skeleton as PSK  
+                                                    IMPORTEXPORT.importpsk(skeleton_path, False)                   
+                                                    #Rename Armature to "Armature"
+                                                    selected = bpy.context.selected_objects[0]
+                                                    selected.name = "Armature"
+                                                    selected.data.name = "Root"
+                                                    # Construct PSA path and import
+                                                    IMPORTEXPORT.importpsa(psa_path)       
+                                                    # Construct FBX path and export
+                                                    IMPORTEXPORT.exportfbx(fbx_path)
+        
+                                                    #Clear scene
+                                                    for action in bpy.data.actions:
+                                                        action.user_clear()
+                                                        bpy.data.actions.remove(action)
+                                                    for armature in bpy.data.armatures:
+                                                        armature.user_clear()
+                                                        bpy.data.armatures.remove(armature)                
+                                                    #purge_data = set(o.data for o in context.scene.objects if o.data)
+                                                    #bpy.data.batch_remove(context.scene.objects)
+                                                    #bpy.data.batch_remove([o for o in purge_data if not o.users])
+                                                    print('exported ' + fbx_path + ' successfully')
+                                                    found = True
+                                                    break
 
         if args.skeleton_enum == 'PSK':
             psk_path = args.psk_file
@@ -307,7 +358,6 @@ class PSAFBX_Run(bpy.types.Operator):
                         purge_data = set(o.data for o in context.scene.objects if o.data)
                         bpy.data.batch_remove(context.scene.objects)
                         bpy.data.batch_remove([o for o in purge_data if not o.users])
-  
                         print('exported ' + psa_path + ' successfully')
                         
         return {'FINISHED'}  
@@ -326,8 +376,9 @@ class PSKFBX_AddonPanel(bpy.types.Panel):
         props = context.scene.my_properties      
         layout.prop(props, "psk_folder_path")
         layout.prop(props, "file_enum")
+        layout.prop(props, "replace_fbx_psk")
         layout.operator("object.pskrun", text = "Convert PSK to UE FBX Recursive") 
-        
+
 class PSAFBX_AddonPanel(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -345,10 +396,9 @@ class PSAFBX_AddonPanel(bpy.types.Panel):
         else:
             layout.prop(props, "psk_file")
             layout.prop(props, "skeleton_enum") 
-            layout.prop(props, "mesh_bool") 
+            layout.prop(props, "mesh_bool")
+        layout.prop(props, "replace_fbx_psa")
         layout.operator("object.psarun", text = "Convert PSA to UE FBX Recursive") 
-        
-          
 
 class PSKFBX_OT_show_message(bpy.types.Operator):
     bl_idname = "pskfbx.message"
@@ -381,7 +431,7 @@ class PSKFBX_OT_show_message(bpy.types.Operator):
         self.line0 = self.lines.pop(0)
         
         return context.window_manager.invoke_props_dialog(self, width = 100 + 6*maxlen)
-      
+
     def cancel(self, context):
         # print('cancel')
         self.execute(self)
@@ -402,9 +452,8 @@ classes = (
     PSKFBX_AddonPanel,
     PSAFBX_AddonPanel,    
     PSKFBX_OT_show_message
-  
 )
- 
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -415,8 +464,7 @@ def unregister():
         bpy.utils.unregister_class(cls)
     del bpy.types.Scene.my_properties
 
-
 if __name__ == "__main__":
     register()
-    
+
 bpy.app.handlers.load_post.append(register)
